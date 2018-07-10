@@ -1,77 +1,25 @@
-from flask import Flask, request
-from flask_restful import Resource, Api, reqparse
-from flask_jwt import JWT, jwt_required
+#from flask import Flask, request
+#from flask_restful import Resource, Api, reqparse
+#from flask_jwt import JWT, jwt_required
+from flask import Flask
+from flask_restful import Api
+from flask_jwt import JWT
 
 from security import authenticate, identity
+from user import UserRegister
+from item import Item, ItemList
 
 app = Flask(__name__)
+app.config['PROPAGATE_EXCEPTIONS'] = True
 app.secret_key = 'snigdha'
 api = Api(app)
 
 jwt = JWT(app, authenticate, identity)  # /auth
 
-items = []
-
-
-class Item(Resource):
-	parser = reqparse.RequestParser()
-	parser.add_argument('price',
-		type=float,
-		required=True,
-		help="This field cannot be left blank!"
-	)
-
-	@jwt_required()
-	def get(self, name):
-		# for item in items:
-		# 	if item['name'] == name:
-		# 		return item
-		#	above for loop replaced with the below code
-		item = next(filter(lambda x: x['name'] == name, items), None)
-		return {'item': item}, 200 if item else 404
-
-
-
-	def post(self, name):
-		
-		#	can pass force=True or silent=True in get_json() to process data nevertheless.
-		if next(filter(lambda x: x['name'] == name, items), None):
-			return {'message':"An item with name '{}' already exists".format(name)}, 400
-
-		data = Item.parser.parse_args()
-		
-		item = {
-			'name':name,
-			'price': data['price']
-		}
-		items.append(item)
-		return item, 201
-
-
-	def delete(self, name):
-		global items
-		items = list(filter(lambda x: x['name'] != name, items))
-		return {'message':'item deleted'}
-
-
-	def put(self, name):
-		
-		data = Item.parser.parse_args()
-		# print(data['another'])
-		item = next(filter(lambda x: x['name'] == name, items), None)
-		if item is None:
-			item = {'name':name, 'price': data['price']}
-			items.append(item)
-		else:
-			item.update(data)
-		return item
-
-class ItemList(Resource):
-	def get(self):
-		return {'items': items}
-
 
 api.add_resource(Item, '/item/<string:name>')
 api.add_resource(ItemList, '/items')
+api.add_resource(UserRegister, '/register')
 
-app.run(port=5001, debug=True)
+if __name__=='__main__':
+	app.run(port=5001, debug=True)
